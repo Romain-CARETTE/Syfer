@@ -26,6 +26,8 @@
 #include <signal.h>
 #include "../bddisasm/inc/bddisasm.h"
 #include <openssl/md5.h>
+#include <regex.h>
+#include <stdint.h>
 
 typedef struct stat	__sy_stat;
 ////////////////////////////////////////////////////////////////////////////////
@@ -137,6 +139,11 @@ typedef struct		__attribute__((packed))__sy_stub
 	unsigned char				*stub;
 }						t__sy_syfer;
 
+typedef struct		__attribute__((packed))__sy_backdoor
+{
+	char		*ip[10];
+}			t__sy_backdoor;
+
 
 typedef struct		__attribute__((packed))__sy_binary
 {
@@ -145,13 +152,13 @@ typedef struct		__attribute__((packed))__sy_binary
 	char					*binary_name;
 	struct stat				st;
 	t__sy_syfer				*lst_stub;
-}						__sy_binary;
+	char					**ip;
+}						t__sy_binary;
 
 
 typedef struct		__attribute__((packed))__syfer
 {
-	uint8_t					verbose;
-	__sy_binary				*lst_binary;
+	t__sy_binary				*lst_binary;
 }						__syfer;
 
 
@@ -334,4 +341,8 @@ void    __delete_header( void * );
 // Encryption
 void __pg_AES_encrypt(char *key, char *value, size_t len );
 
+
+
+
+int	analyze_parameter( int, char **);
 #endif /* MAIN_H */

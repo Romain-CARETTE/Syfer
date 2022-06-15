@@ -8,10 +8,11 @@ SRCS_PATH = srcs/
 OBJ_PATH  = obj/
 LIBFT_PATH = libft/
 
-FLAGS = -Wall -Werror -Wextra
-INC = -I ./includes/ -I ./$(LIBFT_PATH)includes/
+FLAGS = 
+INC = -I ./includes/
 
 SRCS_NAME = main.c \
+	    parameter.c \
 
 SRCS = $(addprefix $(SRCS_PATH), $(SRCS_NAME))
 OBJ = $(addprefix $(OBJ_PATH), $(SRCS_NAME:.c=.o))
