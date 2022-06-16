@@ -151,8 +151,8 @@ typedef struct		__attribute__((packed))__sy_binary
 	char					out_binary_name[PATH_MAX];
 	char					*binary_name;
 	struct stat				st;
-	t__sy_syfer				*lst_stub;
-	char					**ip;
+	char                    **stub;
+    char					**ip;
 }						t__sy_binary;
 
 
