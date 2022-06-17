@@ -41,6 +41,7 @@ syfer_verbose( t__sy_binary *data ) {
 	        fprintf( stderr, "\t\t%s %s %s\n", ANSI_COLOR_YELLOW, data->stub[i], ANSI_COLOR_RESET);
 
     }
+	fprintf( stderr, "\t%sOutput: %s%s\n", ANSI_COLOR_YELLOW, data->out_binary_name, ANSI_COLOR_RESET);
 }
 
 static void
@@ -172,6 +173,13 @@ do_analyze_parameter( int ac, char **av, int *i, t__sy_binary *data )
                 data->opts |= 0X20;
 
         }
+        else if ( ! strcmp( av[*i], "-o") ) {
+            if ( av[*i+1] == NULL )
+                exit( 1 );
+            ++(*i);
+            memset( data->out_binary_name, 0x00, PATH_MAX );
+            memcpy( data->out_binary_name, av[*i], strlen(av[*i]));
+        }
         else
         {
             --(*i);
@@ -197,6 +205,12 @@ analyze_parameter( int __attribute__((unused)) ac, char __attribute__((unused))*
         {
             data->binary_name = av[i++];
 		    do_analyze_parameter(ac, av, &i, data);
+
+            if ( *data->out_binary_name == 0x00 ) {
+                char *tmp = strrchr( data->binary_name, '/');
+                tmp = ( tmp == NULL ) ? data->binary_name : tmp;
+                sprintf( data->out_binary_name, "Syfer_%s.out", ++tmp);
+            }
             syfer_verbose( data );
 
             ( data->stub != NULL ) ? free( data->stub ) : 0X00;
