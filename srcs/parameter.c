@@ -208,8 +208,8 @@ analyze_parameter( int __attribute__((unused)) ac, char __attribute__((unused))*
 
             if ( *data->out_binary_name == 0x00 ) {
                 char *tmp = strrchr( data->binary_name, '/');
-                tmp = ( tmp == NULL ) ? data->binary_name : tmp;
-                sprintf( data->out_binary_name, "Syfer_%s.out", ++tmp);
+                tmp = ( tmp == NULL ) ? data->binary_name : tmp+1;
+                sprintf( data->out_binary_name, "Syfer_%s.out", tmp);
             }
             syfer_verbose( data );
 
