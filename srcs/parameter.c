@@ -13,6 +13,36 @@
  *
  */
 
+
+static void
+syfer_verbose( t__sy_binary *data ) {
+    fprintf( stderr, "%s Binary name: %s %s\n", ANSI_COLOR_BLUE, data->binary_name, ANSI_COLOR_RESET);
+    int     ret = ( data->opts & 0x01 ) ? 0x01 : 0x00;
+    fprintf( stderr, "\t%s --Metamorph: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
+    ret = ( data->opts & 0x02 ) ? 0x01 : 0x00;
+    fprintf( stderr, "\t%s --Compress: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
+    ret = ( data->opts & 0x08 ) ? 0x01 : 0x00;
+    fprintf( stderr, "\t%s --reflective-dll: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
+    ret = ( data->opts & 0x10 ) ? 0x01 : 0x00;
+    fprintf( stderr, "\t%s --load-binary-user-space: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
+
+
+    int i = -1;
+    if ( data->ip && data->ip[0] ) {
+	    fprintf( stderr, "\t%s --backdoor%s\n", ANSI_COLOR_YELLOW, ANSI_COLOR_RESET);
+        while ( data->ip[++i])
+	        fprintf( stderr, "\t\t%s %s %s\n", ANSI_COLOR_YELLOW, data->ip[i], ANSI_COLOR_RESET);
+    }
+
+    i = -1;
+    if ( data->stub && data->stub[0] ) {
+	    fprintf( stderr, "\t%s --stub%s\n", ANSI_COLOR_YELLOW, ANSI_COLOR_RESET);
+        while ( data->stub[++i])
+	        fprintf( stderr, "\t\t%s %s %s\n", ANSI_COLOR_YELLOW, data->stub[i], ANSI_COLOR_RESET);
+
+    }
+}
+
 static void
 bypass_parameters( int ac, char **av, int *i )
 {
@@ -167,19 +197,8 @@ analyze_parameter( int __attribute__((unused)) ac, char __attribute__((unused))*
         {
             data->binary_name = av[i++];
 		    do_analyze_parameter(ac, av, &i, data);
+            syfer_verbose( data );
 
-            printf("%s\n", data->binary_name);
-            if ( data->ip && data->ip[0X00] ) {
-                int ite = -1;
-                while( data->ip[++ite])
-                    printf("\tBACKDOOR: %s\n", data->ip[ite]);
-            }
-
-            if ( data->stub && data->stub[0X00] ) {
-                int ite = -1;
-                while( data->stub[++ite])
-                    printf("\tSTUB: %s\n", data->stub[ite]);
-            }
             ( data->stub != NULL ) ? free( data->stub ) : 0X00;
             ( data->ip != NULL ) ? free( data->ip ) : 0X00;
             memset( data, 0X00, sizeof( t__sy_binary));
