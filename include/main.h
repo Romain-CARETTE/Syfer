@@ -345,4 +345,5 @@ void __pg_AES_encrypt(char *key, char *value, size_t len );
 
 
 int	analyze_parameter( int, char **);
+int syfer( t__sy_binary * );
 #endif /* MAIN_H */

@@ -1,6 +1,6 @@
 NAME = "Syfer"
 CFLAGS_COMMON =  -Wall  -g -std=gnu99 -fPIC -I .. -I bddisasm/inc
-CFLAGS = $(CFLAGS_COMMON) 
+CFLAGS = $(CFLAGS_COMMON)
 
 LDFLAGS = -Lbddisasm/bin/x64/Release -l:libbddisasm.a
 
@@ -8,11 +8,12 @@ SRCS_PATH = srcs/
 OBJ_PATH  = obj/
 LIBFT_PATH = libft/
 
-FLAGS = 
+FLAGS =
 INC = -I ./includes/
 
 SRCS_NAME = main.c \
 	    parameter.c \
+		syfer.c \
 
 SRCS = $(addprefix $(SRCS_PATH), $(SRCS_NAME))
 OBJ = $(addprefix $(OBJ_PATH), $(SRCS_NAME:.c=.o))

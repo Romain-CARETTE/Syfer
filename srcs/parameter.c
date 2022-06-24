@@ -1,4 +1,5 @@
 #include "../include/main.h"
+#include <stdint.h>
 
 /*
  *
@@ -43,6 +44,7 @@ syfer_verbose( t__sy_binary *data ) {
     }
 	fprintf( stderr, "\t%sOutput: %s%s\n", ANSI_COLOR_YELLOW, data->out_binary_name, ANSI_COLOR_RESET);
 }
+
 
 static void
 bypass_parameters( int ac, char **av, int *i )
@@ -204,6 +206,7 @@ analyze_parameter( int __attribute__((unused)) ac, char __attribute__((unused))*
 		else
         {
             data->binary_name = av[i++];
+
 		    do_analyze_parameter(ac, av, &i, data);
 
             if ( *data->out_binary_name == 0x00 ) {
@@ -212,6 +215,7 @@ analyze_parameter( int __attribute__((unused)) ac, char __attribute__((unused))*
                 sprintf( data->out_binary_name, "Syfer_%s.out", tmp);
             }
             syfer_verbose( data );
+            syfer( data );
 
             ( data->stub != NULL ) ? free( data->stub ) : 0X00;
             ( data->ip != NULL ) ? free( data->ip ) : 0X00;
