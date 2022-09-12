@@ -1,5 +1,10 @@
 #include "../include/main.h"
 
+static uint8_t	help( void ) {
+
+	return ( 0X01 );
+}
+
 void
 __attribute__((constructor)) __pg_start(){
 	char const *version = "1.0";
@@ -18,9 +23,12 @@ __attribute__((constructor)) __pg_start(){
     	srand(time(NULL));
 }
 
+
 int
 main(int __attribute__((unused))ac, char __attribute__((unused))**av, char __attribute__((unused))**ev )
 {
+	if ( ac == 0X01 )
+		return ( help() );
 	analyze_parameter( ac, av );
 	return ( 0x00 );
 }
