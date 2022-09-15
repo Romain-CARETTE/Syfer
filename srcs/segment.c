@@ -53,8 +53,8 @@ void modify_segments(t_elf *elf)
 
 		if (corrupt == true)
 		{
-			//segment->p_flags |= PF_W;
-			segment->p_offset += __ALIGN_MASK( getpagesize(), elf->size_stub );
+			segment->p_flags |= PF_W;
+			segment->p_offset += __ALIGN_MASK( getpagesize(), elf->size_stub+elf->n );
 		}
 
 		if (is_entrypoint_segment(header, segment) == true)
@@ -63,9 +63,9 @@ void modify_segments(t_elf *elf)
 			elf->segment_addr = segment->p_vaddr;
 			elf->segment_size = segment->p_filesz;
 			
-			segment->p_filesz += elf->size_stub;
-			segment->p_memsz += elf->size_stub;
-			//segment->p_flags |= PF_W;
+			segment->p_filesz += elf->size_stub + elf->n;
+			segment->p_memsz += elf->size_stub + elf->n;
+			segment->p_flags |= PF_W;
 			//printf("%p\n", elf->segment_addr+segment->p_offset);
 
 			corrupt = true;

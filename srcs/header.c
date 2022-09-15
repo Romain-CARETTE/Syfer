@@ -10,7 +10,7 @@ void modify_header(t_elf *elf ) {
 
 	*(uint32_t *)&header->e_ident[EI_PAD] = PACK_MAGIC_NUMBER;
 
-	header->e_shoff += __ALIGN_MASK( getpagesize(), elf->size_stub );
+	header->e_shoff += __ALIGN_MASK( getpagesize(), elf->size_stub + elf->n );
 	elf->old_entrypoint = header->e_entry;
 	header->e_entry = elf->segment_addr + elf->segment_size;
 }

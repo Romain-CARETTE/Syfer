@@ -151,10 +151,8 @@ typedef struct		__attribute__((packed))__sy_binary
 typedef struct	__attribute__((packed))	__symbol
 {
 	uint8_t				stat;
-	uint16_t			id;
-	size_t				size_symbol;
-	uint8_t				_backup_sym[ 3 ], __backup_sym[ 3 ];
-	uint8_t				key[ 16 ];
+	int				size_symbol;
+	uint8_t				key[ 8 ];
 }					t_sym;
 
 typedef struct	__attribute__((packed))	__functions
