@@ -59,7 +59,6 @@ void modify_sections(t_elf *elf)
 			elf->section_offset = section->sh_offset;
 			elf->section_addr = section->sh_addr;
 			elf->section_size = section->sh_size;
-			printf("test: %lu\n", section->sh_size);
 		}
 
 		if (is_last_section(section, elf) == true)

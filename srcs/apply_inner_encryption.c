@@ -41,6 +41,10 @@ uint8_t	*ELF_get_sym_location( t_elf *elf, const Elf64_Sym *sym ) {
 	return ( NULL );
 }
 
+/*
+ * \fn ELF_sym_in_text( const t_elf *, const Elf64_Sym * )
+ * \brief [...]
+ */
 int ELF_sym_in_text( const t_elf *elf, const Elf64_Sym *sym ) {
 	return elf->text->sh_addr <= sym->st_value && (elf->text->sh_addr + elf->text->sh_size) > sym->st_value;
 }
@@ -59,6 +63,12 @@ uint32_t	_count_symbols( t_elf *elf ) {
 				++count;
 	}
 	return ( count );
+}
+
+void SY_xor(uint8_t *str_in, uint8_t *str_out, uint32_t length, uint8_t key ) {
+
+	for( uint32_t i = 0X00; i < length; i++ )
+		str_out[i] = ( str_in[i] ^ key );
 }
 
 void
@@ -92,47 +102,32 @@ end:
 	return ( -1 );
 }
 
-t_list	*apply_inner_encryption( t_elf *elf, uint32_t *nb )
-{
+void	apply_inner_encryption( t_elf *elf ) {
 	assert( elf !=  NULL );
 
 	uint32_t	count = _count_symbols( elf );
 	if ( count == 0X00 )
-		return ( NULL );
-	uint16_t	position = 0X00, ret = 0;
+		return ;
+	
+	fprintf( stderr, "%s[*] Application of internal encryption on symbols.%s\n", ANSI_COLOR_BLUE, ANSI_COLOR_RESET);
+	fprintf( stderr, "%s[*] Number of symbols: %u%s\n", ANSI_COLOR_BLUE, count, ANSI_COLOR_RESET);
 
 	Elf64_Shdr	*symtab = (Elf64_Shdr *)elf->symtab;
 
-	t_list	*symbol_lst = NULL;
 	for ( Elf64_Sym *__cursor = (Elf64_Sym *)( elf->ptr + symtab->sh_offset); (void *)__cursor < (void *)elf->ptr + symtab->sh_offset + elf->symtab->sh_size; __cursor++ ) {
 		if ( ELF64_ST_TYPE( __cursor->st_info) == STT_FUNC )
 		{
-			struct __functions	sys = { 0X00 };
 			if ( ELF_sym_in_text( elf, __cursor) )
 			{
-				sys.function_name = ELF_get_sym_name( elf, __cursor );
-				
+				printf("%lx --- %s\n", __cursor->st_value, ELF_get_sym_name( elf, __cursor ));				
 				uint8_t *addr = ELF_get_sym_location( elf, __cursor );
 				if ( addr == NULL || memcmp( addr, firt_opcodes_symbol, 0X03 ) != 0X00 )
 					continue;
-				printf("%s %x %.2lx\n", sys.function_name, position, __cursor->st_size-3);
-
-				int ret = syscall( SYS_getrandom, sys.sym.key, 8, 0x0 );
-				for( int i = 0X00; i < 8; i++)
-					printf("%.2x ", sys.sym.key[i]);
-				printf("\n");
-				( void )_rc4( sys.sym.key, 8, (char *)(addr+3), (__cursor->st_size-3) );
 				
 				*addr = INT3;
-				sys.sym.size_symbol = (__cursor->st_size-3);
-				memmove( addr+1, &position, sizeof( uint16_t ));
-				position = (position + 1);
-				
-				t_list	*new = ft_lstnew( &sys, sizeof( struct __functions ) );
-				( void )ft_lstadd( &symbol_lst, new );
-				*nb += sizeof( struct __symbol );
+				//memmove( addr+1, &position, sizeof( uint16_t ));
+				//position = (position + 1);
 			}
 		}
 	}
-	return ( symbol_lst );
 }

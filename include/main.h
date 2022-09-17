@@ -366,7 +366,7 @@ void    __delete_header( void * );
 
 // Encryption
 void 		__pg_AES_encrypt(char *key, char *value, size_t len );
-t_list		*apply_inner_encryption( t_elf *, uint32_t * );
+void		apply_inner_encryption( t_elf * );
 
 
 

