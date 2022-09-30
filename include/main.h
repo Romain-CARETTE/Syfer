@@ -373,7 +373,7 @@ void    __delete_header( void * );
 void 		__pg_AES_encrypt(char *key, char *value, size_t len );
 void		apply_inner_encryption( t_elf * );
 void		apply_global_encryption( t_elf * );
-void 		modify_stub_to_apply_internal_encryption( t_elf *, size_t * );
+void 		modify_stub_to_apply_internal_encryption( uint8_t *, size_t *,  Elf64_Phdr *, size_t * );
 
 
 

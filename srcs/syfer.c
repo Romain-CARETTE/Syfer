@@ -156,6 +156,29 @@ Elf64_Phdr	*get_pload_EXEC( char *ptr, Elf64_Ehdr *hdr)
 	return (NULL);	
 }
 
+
+void modify_stub_to_apply_internal_encryption( uint8_t *stub, size_t *size_stub,  Elf64_Phdr *OLD_exec_seg, size_t *stub_size_whitout_data ) {
+	
+	int	size_data = 0X00;
+	uint8_t *data = __MH_mov_reg32_imm32( NDR_RSI, OLD_exec_seg->p_offset +OLD_exec_seg->p_filesz+*stub_size_whitout_data, &size_data );
+	assert( data != NULL );
+	SYFER_set_mov( stub, *size_stub, data, size_data );
+	free( data );
+	
+	size_data = 0X00;
+	size_t stub_size_data = ( *size_stub - *stub_size_whitout_data );
+	data = __MH_mov_reg32_imm32( NDR_RSI, stub_size_data, &size_data );
+	assert( data != NULL );
+	SYFER_set_mov( stub, *size_stub, data, size_data );
+	free( data );
+
+	size_data = 0X00;
+	data = __MH_mov_reg32_imm32( NDR_RDX, stub_size_data, &size_data );
+	assert( data != NULL );
+	SYFER_set_mov( stub, *size_stub, data, size_data );
+	free( data );
+}
+
 int			syfer_silvio_cesare_text_infection( char *ptr, size_t filesize, uint8_t *st, size_t *size_stub, size_t *stub_size_whitout_data )
 {
 	Elf64_Ehdr	*hdr = ( Elf64_Ehdr *)ptr;
@@ -187,25 +210,7 @@ int			syfer_silvio_cesare_text_infection( char *ptr, size_t filesize, uint8_t *s
 		write( fd, pad, 0X1000 );
 	write( fd, ptr + OLD_next_seg.p_offset, filesize - OLD_exec_seg.p_offset );
 
-	int	size_data = 0X00;
-	uint8_t *data = __MH_mov_reg32_imm32( NDR_RSI, OLD_exec_seg.p_offset +OLD_exec_seg.p_filesz+*stub_size_whitout_data, &size_data );
-	assert( data != NULL );
-	SYFER_set_mov( st, *size_stub, data, size_data );
-	free( data );
-
-	size_data = 0X00;
-	size_t stub_size_data = ( *size_stub - *stub_size_whitout_data );
-	data = __MH_mov_reg32_imm32( NDR_RSI, stub_size_data, &size_data );
-	assert( data != NULL );
-	SYFER_set_mov( st, *size_stub, data, size_data );
-	free( data );
-
-	size_data = 0X00;
-	data = __MH_mov_reg32_imm32( NDR_RDX, stub_size_data, &size_data );
-	assert( data != NULL );
-	SYFER_set_mov( st, *size_stub, data, size_data );
-	free( data );
-
+	( void )modify_stub_to_apply_internal_encryption( st, size_stub, &OLD_exec_seg, stub_size_whitout_data );
 				
 	int addr_jmp = header.e_entry - (hdr->e_entry + *stub_size_whitout_data);
 	SYFER_set_jmp( st, &addr_jmp, *size_stub );
@@ -313,7 +318,6 @@ __SY_analyze( t_elf *elf ) {
 				else
 				{
 					( void )apply_inner_encryption( elf );
-					( void )modify_stub_to_apply_internal_encryption( elf, &size_stub_without_data );
 				}
 
 				( void )apply_global_encryption( elf );
