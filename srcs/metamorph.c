@@ -33,7 +33,29 @@ uint8_t
         reg |= mov;
         *(data+0X00) = reg |= mov;
 	memmove( &data[0x01], &imm, sizeof(int));
-	printf("%x\n", data[1]);
         *size = 0x01 + sizeof( int );
+        return ( data );
+}
+
+uint8_t
+*__MH_sub_reg64_imm32( unsigned char reg, int imm, int *size  ) {
+
+	uint8_t first = ( reg >= NDR_R8 ) ? 0X48 : 0X49;
+	uint8_t	two = ( imm > 127 ) ? 0X81 : 0X83;
+
+       	uint8_t     *data = (uint8_t *)malloc(sizeof(uint8_t)*ND_MAX_INSTRUCTION_LENGTH+1);
+        if ( data == NULL )
+		return ( NULL );
+
+	printf("NDR_RDI: %d - NDR_R8: %d  reg: %d\n", NDR_RDI, NDR_R8, reg);
+	printf("NDR_RDI: %d - NDR_R15: %d  reg: %d\n", NDR_RDI, NDR_R15, reg);
+	*(data+0X00) = ( reg >= NDR_R8 ) ? 0X49 : 0X48;
+	*(data+0X01) = ( imm > 127 ) ? 0X81 : 0X83;
+	*(data+0X02) =  (0XE8 | reg);
+	memmove( &data[0X03], &imm, sizeof( int ));
+	if ( *(data+1) == 0X81 )
+		*size = ( sizeof( int ) + 0X03);
+	else
+		*size = 0X04;
         return ( data );
 }

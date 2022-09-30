@@ -1,20 +1,6 @@
 #include "../include/main.h"
 #define DYN_PROG_BASE_ADDR 0x800000000ULL
-uint8_t	firt_opcodes_symbol[] = { 0X55, 0X48, 0X89 };
-
-unsigned char _stub_symbol[] = {
-  0x41, 0x56, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0xcc, 0x41, 0x5e, 0xeb,
-  0xf3
-};
-
-
-int	get_position_nop( const uint8_t *stub ) {
-	for( int i = 0; i < sizeof( _stub_symbol ); i++ )
-		if ( stub[ i ] == 0X90 )
-			return ( i );
-	return ( -1 );
-}
-
+uint8_t firt_opcodes_symbol[] = { 0X55, 0X48, 0X89 };
 /*
  * \fn const char *ELF_get_sym_name( t_elf *, const Elf64_Sym * )
  * \brief [ ... ]
@@ -59,16 +45,17 @@ uint32_t	_count_symbols( t_elf *elf ) {
 	Elf64_Shdr	*symtab = (Elf64_Shdr *)elf->symtab;
 	for ( Elf64_Sym *__cursor = (Elf64_Sym *)( elf->ptr + symtab->sh_offset); (void *)__cursor < (void *)elf->ptr + symtab->sh_offset + elf->symtab->sh_size; __cursor++ ) {
 		if ( ELF64_ST_TYPE( __cursor->st_info) == STT_FUNC )
-			if ( __cursor->st_size > sizeof(_stub_symbol )  )
+			if ( ELF_sym_in_text( elf, __cursor) )
 				++count;
 	}
 	return ( count );
 }
 
-void SY_xor(uint8_t *str_in, uint8_t *str_out, uint32_t length, uint8_t key ) {
+void SY_xor(uint8_t *str_in, uint32_t length, uint8_t *key ) {
 
-	for( uint32_t i = 0X00; i < length; i++ )
-		str_out[i] = ( str_in[i] ^ key );
+	for( uint32_t i = 0X00; i < length; i++ ) {
+		str_in[i] = ( str_in[i] ^ key[ i % (sizeof( key )/ sizeof( char )) ] );
+	}
 }
 
 void
@@ -102,6 +89,12 @@ end:
 	return ( -1 );
 }
 
+
+
+void modify_stub_to_apply_internal_encryption( t_elf *elf, size_t *size_stub_without_data ) {
+
+}
+
 void	apply_inner_encryption( t_elf *elf ) {
 	assert( elf !=  NULL );
 
@@ -114,19 +107,38 @@ void	apply_inner_encryption( t_elf *elf ) {
 
 	Elf64_Shdr	*symtab = (Elf64_Shdr *)elf->symtab;
 
+	elf->stub = realloc( elf->stub, __ALIGN_MASK(getpagesize(), elf->size_stub ) + ( count * sizeof( struct __symbol )) );
+	assert( elf->stub != NULL );
+
+	uint16_t	position = 0X00;
 	for ( Elf64_Sym *__cursor = (Elf64_Sym *)( elf->ptr + symtab->sh_offset); (void *)__cursor < (void *)elf->ptr + symtab->sh_offset + elf->symtab->sh_size; __cursor++ ) {
 		if ( ELF64_ST_TYPE( __cursor->st_info) == STT_FUNC )
 		{
 			if ( ELF_sym_in_text( elf, __cursor) )
 			{
-				printf("%lx --- %s\n", __cursor->st_value, ELF_get_sym_name( elf, __cursor ));				
+				struct __symbol sym = { 0X00 };
 				uint8_t *addr = ELF_get_sym_location( elf, __cursor );
 				if ( addr == NULL || memcmp( addr, firt_opcodes_symbol, 0X03 ) != 0X00 )
 					continue;
 				
+				printf("%x --- %s --- Position: %.2x ---- %.2x\n", __cursor->st_size-3, ELF_get_sym_name( elf, __cursor ), position, *addr );				
 				*addr = INT3;
-				//memmove( addr+1, &position, sizeof( uint16_t ));
-				//position = (position + 1);
+
+				sym.st_size = (__cursor->st_size-3);
+				sym.id = position;
+				do { }while(syscall( SYS_getrandom, sym.key, 0X08, GRND_NONBLOCK )  == -1 );
+				for( int i = 0X00; i < 8; i++)
+						printf("%.2x ", sym.key[ i ]);
+				printf("\n");
+		
+				SY_xor( (addr+3),  (__cursor->st_size - 3), sym.key );
+
+				memcpy( &elf->stub[  elf->size_stub ], &sym, sizeof( struct __symbol ));
+
+				elf->size_stub += sizeof( struct __symbol );
+				memmove( addr + 0X01, &position, sizeof( uint16_t ));
+				printf("Position: %d\n", position);	
+				position = (position + 1);
 			}
 		}
 	}

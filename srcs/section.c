@@ -51,8 +51,9 @@ void modify_sections(t_elf *elf)
 	{
 		section = get_section(elf, header, index);
 
-		if (corrupt == true)
+		if (corrupt == true) {
 			section->sh_offset += __ALIGN_MASK( getpagesize(), elf->size_stub + elf->n );
+		}
 		
 		if (is_entrypoint_section(header, section) == true)
 		{

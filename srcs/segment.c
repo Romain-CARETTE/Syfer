@@ -51,11 +51,14 @@ void modify_segments(t_elf *elf)
 	{
 		segment = get_segment(elf, header, index);
 
-		if (corrupt == true)
+		if (corrupt == true) {
 			segment->p_offset += __ALIGN_MASK( getpagesize(), elf->size_stub+elf->n );
+		}
 
 		if (is_entrypoint_segment(header, segment) == true)
 		{
+			printf("%x\n", elf->segment_offset);
+			sleep(1);
 			elf->segment_offset = segment->p_offset;
 			elf->segment_addr = segment->p_vaddr;
 			elf->segment_size = segment->p_filesz;

@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <openssl/sha.h>
+#include <sys/random.h>
 
 #define SA_RESTORER	0x04000000
 #define SIGTRAP                5
@@ -150,8 +151,11 @@ typedef struct		__attribute__((packed))__sy_binary
 
 typedef struct	__attribute__((packed))	__symbol
 {
-	uint8_t				stat;
-	int				size_symbol;
+	uint8_t				st;				// 0 Encrypt
+									// 1 Decrypt
+	uint16_t			id;
+	uint64_t			st_size;
+	uint8_t				_bac[ sizeof( uint64_t) ];
 	uint8_t				key[ 8 ];
 }					t_sym;
 
@@ -175,8 +179,8 @@ typedef struct __attribute__((packed))	s_elf {
 	size_t 				filesize;
 	char const 			*filename;
 	t__sy_binary			*sy_binary;
-	char				*stub;
-	uint32_t			size_stub, n;	
+	uint8_t				*stub;
+	uint64_t			size_stub, n, tmp;	
 } 					t_elf;
 
 typedef struct		__attribute__((packed))__sy_stub
@@ -318,6 +322,7 @@ void   *__allocate_mem_and_set_number( const int n );
 // ------------------------------------ //
 // -- PROTOTYPES METAMORPH FUNCTIONS -- //
 // ------------------------------------ //
+uint8_t	*__MH_sub_reg64_imm32( unsigned char, int, int * );
 
 # define __MH_PUSH   0x00
 # define __MH_POP    0x01
@@ -367,6 +372,8 @@ void    __delete_header( void * );
 // Encryption
 void 		__pg_AES_encrypt(char *key, char *value, size_t len );
 void		apply_inner_encryption( t_elf * );
+void		apply_global_encryption( t_elf * );
+void 		modify_stub_to_apply_internal_encryption( t_elf *, size_t * );
 
 
 

