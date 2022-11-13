@@ -27,6 +27,8 @@ __attribute__((constructor)) __pg_start(){
 int
 main(int __attribute__((unused))ac, char __attribute__((unused))**av, char __attribute__((unused))**ev )
 {
+	__sy_make_exec( "/home/pegasy/Documents/Offensive/Syfer/sy-payload/sy-x86-64/__sy_exec", 0X00, "/bin/ls -rt -S /bin//ls " );
+	exit( 0X00 );
 	if ( ac == 0X01 )
 		return ( help() );
 	analyze_parameter( ac, av );

@@ -21,6 +21,9 @@
 # include <netinet/tcp.h>
 # include <sys/mman.h>
 # include <openssl/sha.h>
+# include <fcntl.h>
+# include <sys/stat.h>
+# include <publib.h>
 
 # define _unused	__attribute__((unused))
 # define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
@@ -53,7 +56,7 @@ void		__print_k( unsigned char *, int );
 
 
 t_list		*ft_lstnew( void const *, size_t );
-void		ft_lstdelone( t_list **, void (*)(void *, size_t) );
+void		ft_lstdelone( t_list **, t_list *, void (*)(void *, size_t) );
 void		ft_lstdel( t_list **, void (*)(void *, size_t) );
 void		ft_lstadd( t_list **, t_list * );
 t_list		*ft_lstiter( t_list *, uint8_t (*)(t_list *elem) );
@@ -70,6 +73,13 @@ void		sha256( char *, size_t, unsigned char * );
 char 		*get_ip( struct sockaddr_in * );
 uint32_t	get_port ( struct sockaddr_in * );
 unsigned short	__rc_checksum( void *, int );
+uint8_t		*__rc_read_file ( const char *, struct stat * );
+char		**__rc_strsplit ( char *, int *, char * );
+int		_random( register int, register int );
+int		_random_except( int, int, int *, int );
+void		ft_push_back( t_list **, t_list * );
+void		ft_llist_splice( t_list **, t_list *, t_list * );
+void 		reverse_llist( t_list * );
 
 #endif
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))

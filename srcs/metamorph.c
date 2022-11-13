@@ -14,9 +14,11 @@ nd_memset(void *s, int c, size_t n) {
 
 
 uint8_t
-*__MH_mov_reg32_imm32( unsigned char reg, int imm, int *size  ) {
-        static unsigned char mov = 0XB8;
+*__mh_mov_regx32_imm32( uint8_t reg, int imm, int *size  )
+{
 
+	*size = 0X00;
+        static unsigned char mov = 0XB8;
        	uint8_t     *data = (uint8_t *)malloc(sizeof(uint8_t)*ND_MAX_INSTRUCTION_LENGTH+1);
         if ( data == NULL )
 		return ( NULL );
@@ -38,8 +40,10 @@ uint8_t
 }
 
 uint8_t
-*__MH_sub_reg64_imm32( unsigned char reg, int imm, int *size  ) {
+*__mh_sub_regx64_imm32( uint8_t reg, int imm, int *size  )
+{
 
+	*size = 0X00;
 	uint8_t first = ( reg >= NDR_R8 ) ? 0X48 : 0X49;
 	uint8_t	two = ( imm > 127 ) ? 0X81 : 0X83;
 
@@ -47,8 +51,6 @@ uint8_t
         if ( data == NULL )
 		return ( NULL );
 
-	printf("NDR_RDI: %d - NDR_R8: %d  reg: %d\n", NDR_RDI, NDR_R8, reg);
-	printf("NDR_RDI: %d - NDR_R15: %d  reg: %d\n", NDR_RDI, NDR_R15, reg);
 	*(data+0X00) = ( reg >= NDR_R8 ) ? 0X49 : 0X48;
 	*(data+0X01) = ( imm > 127 ) ? 0X81 : 0X83;
 	*(data+0X02) =  (0XE8 | reg);
@@ -59,3 +61,124 @@ uint8_t
 		*size = 0X04;
         return ( data );
 }
+
+/*
+ * \fn uint8_t	*__mh_push_regX64( register uint8_t, uint8_t * )
+ * \brief [ ... ]
+ */
+uint8_t 	*__mh_push_regX64( register uint8_t reg, uint8_t *size )
+{
+	assert( size != NULL );
+	*size = ( reg > NDR_RDI) ? 0X02 : 0X01;
+	uint8_t	*data = calloc( sizeof(char), ND_MAX_INSTRUCTION_LENGTH );
+	if ( ! data )
+		goto __mh_push_regX64_end;
+	if ( *size > 1 )
+	{
+		*(data+0x00) = 0x41;
+		*(data+0x01) = ((reg - NDR_R8) | 0x50 );
+		goto __mh_push_regX64_end;
+	}
+	*(data+0x00) = (reg | 0x50 );
+__mh_push_regX64_end:
+    		return (data);
+}
+
+/*
+ * \fn uint8_t	*__mh_push_imm32( register uint8_t, int, uint8_t * )
+ * \brief [ ... ]
+ */
+uint8_t 	*__mh_push_imm32( register uint8_t reg, const int imm, uint8_t *size )
+{
+	uint8_t	*data = calloc( sizeof(char), ND_MAX_INSTRUCTION_LENGTH );
+	if ( ! data )
+		goto __mh_push_imm32_end;
+	data[ 0X00 ] = ( imm <= 127) ? 0X6A : 0X68;
+	switch( data[ 0X00 ])
+	{
+		case 0X6A:
+			data[ 0X01 ] = (uint8_t)imm;
+			*size = 0X02;
+			break;
+		case 0X68:
+			memmove( &data[ 0X01 ], &imm, sizeof( int ));
+			*size = ( sizeof( int ) + 0X01 );
+			break;
+		default:
+			break;
+	}
+__mh_push_imm32_end:
+		return ( data );
+}
+
+/*
+ * \fn uint8_t __mh_pop_regX64( register uint8_t, uint8_t * )
+ * \brief [ ... ]
+ */
+uint8_t 	*__mh_pop_regX64( register uint8_t reg, uint8_t *size ) {
+	assert( size != NULL );
+	*size = ( reg > NDR_RDI) ? 2 : 1;
+        uint8_t   *data = calloc( sizeof( char), ND_MAX_INSTRUCTION_LENGTH );
+	if ( ! data)
+		goto __mh_pop_regX64_end;
+
+        if ( *size > 1 )
+	{
+                *(data+0x00) = 0x41;
+                *(data+0x01) = (0x58 + (reg - NDR_R8) );
+                goto __mh_pop_regX64_end;
+        }
+        *(data+0x00) = (0x58 + reg );
+__mh_pop_regX64_end:
+        	return ( data );
+}
+
+/* 
+ * \fn uint8_t		*__mh_movabs_str( register uint8_t, uint8_t *, char *)
+ * \brief [ ... ]
+ */
+uint8_t		*__mh_movabs_str( register uint8_t reg, uint8_t *size, char *value) {
+       
+	uint8_t   *data = calloc( sizeof( char), ND_MAX_INSTRUCTION_LENGTH );
+	if ( ! data )
+		goto __mh_movabs_str_end;
+	data[ 0X00 ] = ( reg <= NDR_RDI ) ? 0X48 : 0X49;	
+	data[ 0X01] = ( 0XB8 | reg );
+	memcpy( &data[ 0X02 ], value, strlen( value ) );
+	
+	memcpy( &data[ 0X02 ], value, 0X08 );
+	*size = 10;
+__mh_movabs_str_end:
+		return ( data );
+		
+}
+
+/*
+ * \fn uint8_t 	*__mh_mov_regX64_regX64( register uint8_t, register uint8_t, uint8_t *)
+ * \brief [...]
+ */
+uint8_t 	*__mh_mov_regX64_regX64( register uint8_t dst, register uint8_t src, uint8_t *size ) {
+    assert( size != NULL );
+
+    uint8_t	*data = (unsigned char *)calloc( sizeof( char), ND_MAX_INSTRUCTION_LENGTH );
+    if ( ! data )
+	    goto __mh_mov_regX64_regX64_end;
+
+    *(data+1) = 0X89;
+
+    if (dst > NDR_RDI && src > NDR_RDI)
+		*data = 0X4D;
+    else if (dst < NDR_R8 && src > NDR_RDI)
+		*data = 0X4C;
+    else if (dst > NDR_RDI && src < NDR_R8)
+		*data = 0X49;
+    else if (dst < NDR_R8 && src < NDR_R8)
+		*data = 0X48;
+    dst -= ( dst > NDR_RDI ) ? NDR_R8D : 0x00;
+    src -= ( src > NDR_RDI ) ? NDR_R8D : 0x00;
+    *(data+2) = ((0XC0 + (src * 8)) | dst);
+    *size = 0X03;
+__mh_mov_regX64_regX64_end:
+    		return ( data );
+}
+

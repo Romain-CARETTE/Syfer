@@ -1,6 +1,6 @@
 #include "../include/main.h"
 #define DYN_PROG_BASE_ADDR 0x800000000ULL
-uint8_t firt_opcodes_symbol[] = { 0X55, 0X48, 0X89 };
+uint8_t opcode[] = { 0X55, 0X48, 0X89 };
 /*
  * \fn const char *ELF_get_sym_name( t_elf *, const Elf64_Sym * )
  * \brief [ ... ]
@@ -52,7 +52,8 @@ uint32_t	_count_symbols( t_elf *elf ) {
 
 void SY_xor(uint8_t *str_in, uint32_t length, uint8_t *key ) {
 
-	for( uint32_t i = 0X00; i < length; i++ ) {
+	for( uint32_t i = 0X00; i < length; i++ )
+	{
 		str_in[i] = ( str_in[i] ^ key[ i % (sizeof( key )/ sizeof( char )) ] );
 	}
 }
@@ -64,32 +65,29 @@ ___MH_debug_st( INSTRUX ix ) {
         fprintf(stderr, "%s\n", instruction);
 }
 
-uint8_t	_find_RET( uint8_t *addr, size_t size ) {
-
-	return ( 0X01 );
-}
-
-size_t	_search_position( uint8_t *addr, size_t size ) {
-
-	INSTRUX	ix = { 0X00 };
-	for( size_t i = 0X00; i < size; i+= ix.Length) {
-		NDSTATUS status = NdDecodeEx( &ix, addr+i, size, ND_CODE_64, ND_DATA_64);
-		if ( ! ND_SUCCESS(status) )
-			return ( -1 );
-		if ( i + ix.Length >= size-3 ) {
-			//___MH_debug_st( ix );
-
-			if ( _find_RET( addr, size ) )
-				return ( -1 );
-			return ( i );
+uint8_t		cmp_fcts( const char *fct, char **lst_fcts )
+{
+	int i = -1;
+	while ( lst_fcts[ ++i ] != NULL ) {
+		if ( strcmp( lst_fcts[ i ], fct ) == 0X00 ) {
+			sleep(1);
+			return ( 0X01 );
 		}
 	}
-end:
-	return ( -1 );
+	return ( 0X00 );
 }
 
 
-void	apply_inner_encryption( t_elf *elf ) {
+uint8_t	detect_function_recursive( uint8_t *addr, size_t size ) {
+	
+	INSTRUX ix;
+        for( size_t i = 0X00; i < size; i+= ix.Length ) {
+                NDSTATUS status = NdDecodeEx( &ix, addr+i, size, ND_CODE_64, ND_DATA_64);
+		___MH_debug_st( ix );
+	}
+}
+
+void	apply_inner_encryption( t_elf *elf, char **fcts ) {
 	assert( elf !=  NULL );
 
 	uint32_t	count = _count_symbols( elf );
@@ -105,27 +103,37 @@ void	apply_inner_encryption( t_elf *elf ) {
 	assert( elf->stub != NULL );
 
 	uint16_t	position = 0X00;
-	for ( Elf64_Sym *__cursor = (Elf64_Sym *)( elf->ptr + symtab->sh_offset); (void *)__cursor < (void *)elf->ptr + symtab->sh_offset + elf->symtab->sh_size; __cursor++ ) {
-		if ( ELF64_ST_TYPE( __cursor->st_info) == STT_FUNC && ELF_sym_in_text( elf, __cursor) )
+	fprintf( stderr, "\t%s* THIS FEATURE ENCRYPT AND DECRYPT THE SYMBOLS IN MEMORY AND ENCRYPT THEM AGAIN AT THE END OF THE FUNCTION.\n\t* THIS SLOWS DOWN THE EXECUTION TIME CONSIDERABLY, BUT THIS ALLOWS YOU TO HAVE VERY FEW PLAINTEXT FUNCTIONS IN MEMORY AT THE SAME TIME.\n\t* IF ONE OF YOUR SYMBOLS IS A RECURSIVE FUNCTION, THE BEHAVIOR IS UNDEFINED.%s\n", ANSI_COLOR_RED, ANSI_COLOR_RESET);
+	for ( Elf64_Sym *__cursor = (Elf64_Sym *)( elf->ptr + symtab->sh_offset); (void *)__cursor < (void *)elf->ptr + symtab->sh_offset + elf->symtab->sh_size; __cursor++ )
+	{
+		if (  ELF_sym_in_text( elf, __cursor ) )
 		{
 			struct __symbol sym = { 0X00 };
 			uint8_t *addr = ELF_get_sym_location( elf, __cursor );
-			if ( addr == NULL || memcmp( addr, firt_opcodes_symbol, 0X03 ) != 0X00 )
+			if ( addr == NULL || memcmp( addr, opcode, 0X03 ) != 0X00 || *(addr+__cursor->st_size-1) != 0XC3 )
 				continue;
-				
+			if ( cmp_fcts( ELF_get_sym_name( elf, __cursor ), fcts ) )
+				continue;
+			
 			*addr = INT3;
-
+			
 			sym.st_size = (__cursor->st_size-3);
 			sym.id = position;
 			do { }while(syscall( SYS_getrandom, sym.key, 0X08, GRND_NONBLOCK )  == -1 );
+
 		
-			SY_xor( (addr+3),  (__cursor->st_size - 3), sym.key );
+			SY_xor( (addr+3),  (__cursor->st_size - 4), sym.key );
 
 			memcpy( &elf->stub[  elf->size_stub ], &sym, sizeof( struct __symbol ));
 
 			elf->size_stub += sizeof( struct __symbol );
 			memmove( addr + 0X01, &position, sizeof( uint16_t ));
 			position = (position + 1);
+
+			fprintf( stderr, "\t%s[*] encrypting function %s with key ", ANSI_COLOR_GREEN, ELF_get_sym_name( elf, __cursor));
+			for( uint8_t j = 0X00; j < 0X08; ++j)
+				fprintf( stderr, "0X%.2X ", sym.key[ j ]);
+			fprintf( stderr, "%s\n", ANSI_COLOR_RESET);
 		}
 	}
 }

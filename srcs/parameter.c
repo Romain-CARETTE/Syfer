@@ -23,27 +23,18 @@ syfer_verbose( t__sy_binary *data ) {
     fprintf( stderr, "\t%s --Metamorph: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
     ret = ( data->opts & 0x02 ) ? 0x01 : 0x00;
     fprintf( stderr, "\t%s --Compress: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
-    ret = ( data->opts & 0x08 ) ? 0x01 : 0x00;
-    fprintf( stderr, "\t%s --reflective-dll: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
-    ret = ( data->opts & 0x10 ) ? 0x01 : 0x00;
-    fprintf( stderr, "\t%s --load-binary-user-space: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
+    ret = ( data->opts & 0x80 ) ? 0x01 : 0x00;
+    fprintf( stderr, "\t%s --apply-inner-encryption: %d %s\n", ANSI_COLOR_YELLOW, ret, ANSI_COLOR_RESET);
 
 
     int i = -1;
-    if ( data->ip && data->ip[0] ) {
-	    fprintf( stderr, "\t%s --backdoor%s\n", ANSI_COLOR_YELLOW, ANSI_COLOR_RESET);
-        while ( data->ip[++i])
-	        fprintf( stderr, "\t\t%s %s %s\n", ANSI_COLOR_YELLOW, data->ip[i], ANSI_COLOR_RESET);
-    }
-
-    i = -1;
     if ( data->stub && data->stub[0] ) {
 	    fprintf( stderr, "\t%s --stub%s\n", ANSI_COLOR_YELLOW, ANSI_COLOR_RESET);
         while ( data->stub[++i])
 	        fprintf( stderr, "\t\t%s %s %s\n", ANSI_COLOR_YELLOW, data->stub[i], ANSI_COLOR_RESET);
 
     }
-	fprintf( stderr, "\t%sOutput: %s%s\n", ANSI_COLOR_YELLOW, data->out_binary_name, ANSI_COLOR_RESET);
+	fprintf( stderr, "\t%s File output: %s%s\n", ANSI_COLOR_YELLOW, data->out_binary_name, ANSI_COLOR_RESET);
 }
 
 
@@ -144,6 +135,20 @@ _sy_parameter_stub( int ac, char **av, int *i, t__sy_binary *data )
 }
 
 void
+_sy_parameter_bypass_functions( int ac, char **av, int *i, t__sy_binary *data ) {
+
+	int	j = -1;
+	while ( av[ ++(*i) ] )
+	{
+		if ( av[ *i ][ 0X00 ] == '-' )
+			break;
+		else
+			data->bypass_fcts[++j] = av[ *i ];
+		data->bypass_fcts[ j + 1 ] = 0X00;
+	}
+}
+
+void
 do_analyze_parameter( int ac, char **av, int *i, t__sy_binary *data )
 {
     int ret;
@@ -153,42 +158,40 @@ do_analyze_parameter( int ac, char **av, int *i, t__sy_binary *data )
 			data->opts |= 0X01;
 		else if ( ! strcmp( av[*i], "--compress") )
 			data->opts |= 0X02;
-		else if ( ! strcmp( av[*i], "--reflective"))
-			data->opts |= 0X08;
-		else if ( ! strcmp( av[*i], "--load-binary-user-space") )
-			data->opts |= 0X10;
-		else if ( ! strcmp( av[*i], "--stub"))
+		else if ( ! strcmp( av[ *i ], "--encrypt-rounds") )
 		{
-            ++(*i);
-            ret = _sy_parameter_stub( ac, av, i, data );
-            if ( ret )
-                fprintf(stderr, "%s[-] An error occurred during the analysis of the parameter. LINE: %d FILE: %s Errno: %s %s\n", ANSI_COLOR_RED, __LINE__, __FILE__, strerror(errno), ANSI_COLOR_RESET);
-            else
-             data->opts |= 0X40;
+			if ( av[ *i + 1 ] != NULL ) {
+				data->encrypt_rounds = atoi( av[ *i + 0X01 ]);
+				*i = (*i + 1);
+			}
 
 		}
-		else if ( ! strcmp( av[*i], "--backdoor")) {
-            ++(*i);
+		else if ( ! strcmp( av[*i], "--stub"))
+		{
+			++(*i);
+			ret = _sy_parameter_stub( ac, av, i, data );
+			if ( ret )
+				fprintf(stderr, "%s[-] An error occurred during the analysis of the parameter. LINE: %d FILE: %s Errno: %s %s\n", ANSI_COLOR_RED, __LINE__, __FILE__, strerror(errno), ANSI_COLOR_RESET);
+			else
+				data->opts |= 0X40;
 
-			ret = _sy_parameter_backdoor( ac, av, i, data );
-            if ( ret )
-                fprintf(stderr, "%s[-] An error occurred during the analysis of the parameter. LINE: %d FILE: %s Errno: %s %s\n", ANSI_COLOR_RED, __LINE__, __FILE__, strerror(errno), ANSI_COLOR_RESET);
-            else
-                data->opts |= 0X20;
-
-        }
-        else if ( ! strcmp( av[*i], "-o") ) {
-            if ( av[*i+1] == NULL )
-                exit( 1 );
-            ++(*i);
-            memset( data->out_binary_name, 0x00, PATH_MAX );
-            memcpy( data->out_binary_name, av[*i], strlen(av[*i]));
-        }
-        else
-        {
-            --(*i);
-            break;
-        }
+		}
+		else if ( ! strcmp( av[ *i], "--apply-inner-encryption" ) || !strcmp( av[ *i ], "-aie") ) {
+			data->opts |= 0X80;
+			_sy_parameter_bypass_functions( ac, av, i, data );
+		}
+		else if ( ! strcmp( av[*i], "-o") ) {
+			if ( av[*i+1] == NULL )
+				exit( 1 );
+			++(*i);
+			memset( data->out_binary_name, 0x00, PATH_MAX );
+			memcpy( data->out_binary_name, av[*i], strlen(av[*i]));
+		}
+        	else
+        	{
+            		--(*i);
+            		break;
+        	}
     }
 }
 
