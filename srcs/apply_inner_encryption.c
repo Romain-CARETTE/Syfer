@@ -78,15 +78,6 @@ uint8_t		cmp_fcts( const char *fct, char **lst_fcts )
 }
 
 
-uint8_t	detect_function_recursive( uint8_t *addr, size_t size ) {
-	
-	INSTRUX ix;
-        for( size_t i = 0X00; i < size; i+= ix.Length ) {
-                NDSTATUS status = NdDecodeEx( &ix, addr+i, size, ND_CODE_64, ND_DATA_64);
-		___MH_debug_st( ix );
-	}
-}
-
 void	apply_inner_encryption( t_elf *elf, char **fcts ) {
 	assert( elf !=  NULL );
 

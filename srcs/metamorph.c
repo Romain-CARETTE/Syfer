@@ -14,7 +14,7 @@ nd_memset(void *s, int c, size_t n) {
 
 
 uint8_t
-*__mh_mov_regx32_imm32( uint8_t reg, int imm, int *size  )
+*__mh_mov_regx32_imm32( uint8_t reg, int imm, uint8_t *size  )
 {
 
 	*size = 0X00;
@@ -36,11 +36,14 @@ uint8_t
         *(data+0X00) = reg |= mov;
 	memmove( &data[0x01], &imm, sizeof(int));
         *size = 0x01 + sizeof( int );
+	for( int i = 0; i < *size; i++)
+		printf("%x ", data[ i ]);
+	printf("\n");
         return ( data );
 }
 
 uint8_t
-*__mh_sub_regx64_imm32( uint8_t reg, int imm, int *size  )
+*__mh_sub_regx64_imm32( uint8_t reg, int imm, uint8_t *size  )
 {
 
 	*size = 0X00;
@@ -88,7 +91,7 @@ __mh_push_regX64_end:
  * \fn uint8_t	*__mh_push_imm32( register uint8_t, int, uint8_t * )
  * \brief [ ... ]
  */
-uint8_t 	*__mh_push_imm32( register uint8_t reg, const int imm, uint8_t *size )
+uint8_t 	*__mh_push_imm32( const int imm, uint8_t *size )
 {
 	uint8_t	*data = calloc( sizeof(char), ND_MAX_INSTRUCTION_LENGTH );
 	if ( ! data )

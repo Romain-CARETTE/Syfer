@@ -12,14 +12,18 @@ global _start
 section .text
 
 _start:
+	int3
 	JMP _main
 	PUSH SYS_FORK			; ** Fork the process **
 	POP RAX				;
 	SYSCALL				;
 	
 	CMP RAX, 0x00			;
+	NOP
 	JS __sy_exit			; ** No execution if an error occurs with the syscall fork ** 
-	JNE _main
+	NOP
+	NOP
+	JNE __sy_exit
 
 	
 	__sy_father:
@@ -34,10 +38,14 @@ _start:
 		MOV RAX, SYS_WAIT4	;
 		SYSCALL			;
 		LEAVE			;
-		NOP
+		NOP			;
+		NOP			;
+		NOP			;
 		JMP __sy_exit		;
 		
 _main:
+	NOP
+	NOP
 	NOP
 	NOP
 	MOV RCX, 0XFF	
@@ -58,11 +66,15 @@ _main:
 	NOP
 	NOP
 	NOP
+	NOP
+	NOP
 	;; ** PUSH 0X00
 	;; ** MOV RBX, 0X736C2F2F6E69622F // --> /bin//sh
 	;; ** PUSH RBX
 	
 	CLD
+	NOP
+	NOP
 	NOP
 	NOP
 	NOP
@@ -77,12 +89,17 @@ _main:
 
 	MOV RBX, RSP
 	PUSH 0X00
+	XOR RCX, RCX
+	
 	NOP
 	NOP
 	NOP
 	NOP
 	NOP
-	MOV RCX, 0X00
+	NOP
+	NOP
+	;; ** define the number of parameters ** ;;
+	;; ** MOV RCX, 0X00
 	CMP RCX, 0X00
 	JE .L4	
 	PUSH 0X00
@@ -105,6 +122,9 @@ _main:
 	SYSCALL
 
 __sy_exit:
+	NOP
+	NOP
+	NOP
 	NOP
 	NOP
 	NOP

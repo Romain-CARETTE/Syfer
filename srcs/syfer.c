@@ -231,7 +231,7 @@ set_payload_for_to_get_the_address( uint8_t *stub, const size_t size, uint32_t *
 	assert( stub != NULL );
 	assert( value != NULL );
 
-	int size_data;
+	uint8_t size_data;
 	uint8_t res = 0X01;
 	uint8_t *data = __mh_sub_regx64_imm32( NDR_RDI, *value, &size_data );
 	if ( data == NULL )
@@ -253,7 +253,7 @@ uint8_t
 set_the_size_of_the_text_section_in_the_payload( uint8_t *stub, const size_t size, uint32_t value ) {
 	assert( stub != NULL );
 	
-	int size_data;
+	uint8_t size_data;
 	uint8_t res = 0X01;
 	uint8_t *data = __mh_mov_regx32_imm32( NDR_RSI, value, &size_data );
 	if ( data == NULL )
@@ -276,7 +276,7 @@ uint8_t
 set_the_payload_to_enable_memory_writing( uint8_t *stub, const size_t size, uint32_t value ) {
 	assert( stub != NULL );
 
-	int size_data;
+	uint8_t size_data;
 	uint8_t res = 0X01;
 	uint8_t *data = __mh_mov_regx32_imm32( NDR_RSI, value, &size_data );
 	if ( data == NULL )
@@ -341,7 +341,7 @@ Elf64_Phdr	*get_pload_EXEC( char *ptr, Elf64_Ehdr *hdr)
 
 void modify_stub_to_apply_internal_encryption( uint8_t *stub, size_t *size_stub,  Elf64_Phdr *OLD_exec_seg, size_t *stub_size_whitout_data ) {
 
-	int	size_data = 0X00;
+	uint8_t	size_data = 0X00;
 	uint8_t *data = __mh_mov_regx32_imm32( NDR_RSI, OLD_exec_seg->p_offset +OLD_exec_seg->p_filesz+*stub_size_whitout_data, &size_data );
 	assert( data != NULL );
 	SYFER_set_mov( stub, *size_stub, data, size_data );

@@ -23,7 +23,7 @@
 #include <math.h>
 #include <assert.h>
 #include <sys/syscall.h>
-# include "../libft/libft.h"
+# include "../Libft/libft.h"
 //#include <curl/curl.h>
 #include "../bddisasm/inc/bddisasm.h"
 #include <openssl/md5.h>
@@ -399,15 +399,17 @@ uint32_t	__sy_get_random_number( int );
 
 
 // ** METAMORPH.C ** //
-uint8_t		*__mh_mov_regx32_imm32( uint8_t, int, int * );
-uint8_t		*__mh_sub_regx64_imm32( uint8_t, int, int * );
+uint8_t		*__mh_mov_regx32_imm32( uint8_t, int, uint8_t * );
+uint8_t		*__mh_sub_regx64_imm32( uint8_t, int, uint8_t * );
 uint8_t 	*__mh_push_regX64( register uint8_t, uint8_t * );
-uint8_t 	*__mh_push_imm32( register uint8_t, const int, uint8_t * );
+uint8_t 	*__mh_push_imm32( const int, uint8_t * );
 uint8_t 	*__mh_pop_regX64( register uint8_t, uint8_t * );
 uint8_t 	*__mh_mov_regX64_regX64( register uint8_t, register uint8_t, uint8_t * );
 
 typedef struct	s_str
 {
+	// ** Info opcode ** //
+	INSTRUX	ix;
 	// ** Assembly code ** //
 	uint8_t	data[ ND_MAX_INSTRUCTION_LENGTH ];
 	// ** Assembly code size ** //
