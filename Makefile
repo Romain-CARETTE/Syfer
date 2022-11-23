@@ -4,7 +4,7 @@ CFLAGS_COMMON :=  -g -std=gnu99 -fPIC -I .. -I bddisasm/inc -I ./$(LIBFT_PATH)/i
 CFLAGS = $(CFLAGS_COMMON)
 
 NASM := nasm -f bin
-LDFLAGS := -Lbddisasm/bin/x64/Release -l:libbddisasm.a -lcrypto -lpub -L $(LIBFT_PATH) -lft
+LDFLAGS := -Lbddisasm/build -l:libbddisasm.a -lcrypto -lpub -L $(LIBFT_PATH) -lft
 
 SRCS_PATH := srcs/
 OBJ_PATH  := obj/

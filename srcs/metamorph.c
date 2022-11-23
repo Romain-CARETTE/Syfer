@@ -1,16 +1,16 @@
 #include "../include/main.h"
 
 /*** Needs to be defined for bddisasm ***/
-int
+/*int
 nd_vsnprintf_s( char *buffer, size_t sizeOfBuffer, size_t count, const char *format, va_list argptr ) {
         return vsnprintf(buffer, sizeOfBuffer, format, argptr);
-}
+}*/
 
 /*** Needs to be defined for bddisasm ***/
-void*
+/*void*
 nd_memset(void *s, int c, size_t n) {
         return memset(s, c, n);
-}
+}*/
 
 
 uint8_t

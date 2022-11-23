@@ -1,3 +1,6 @@
 [submodule "Libft"]
 	path = Libft
 	url = https://github.com/Romain-CARETTE/Libft.git
+[submodule "bddisasm"]
+	path = bddisasm
+	url = https://github.com/bitdefender/bddisasm.git
